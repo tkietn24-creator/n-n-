@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Time HUD</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box}
+html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:black;
+    font-family:'Montserrat',sans-serif;
+}
+
+/* ===== VARIABLES ===== */
+:root{
+    --text-color:#ffffff;
+    --neon-color:#00ffff;
+    --glow-strength:16;
+    --glow:0 0 0 transparent;
+}
+
+/* ===== VIDEO ===== */
+#bg-video{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    z-index:0;
+}
+
+/* ===== HUD ===== */
+.center{
+    position:relative;
+    z-index:2;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    text-align:center;
+}
+.day{
+    font-size:88px;
+    letter-spacing:14px;
+    font-weight:500;
+    color:var(--text-color);
+    text-shadow:var(--glow);
+}
+.date{
+    font-size:22px;
+    letter-spacing:6px;
+    opacity:.85;
+    margin-top:6px;
+    color:var(--text-color);
+    text-shadow:var(--glow);
+}
+.time{
+    font-size:20px;
+    letter-spacing:6px;
+    opacity:.7;
+    margin-top:6px;
+    color:var(--text-color);
+    text-shadow:var(--glow);
+}
+
+/* ===== PANEL ===== */
+.top-zone{
+    position:fixed;
+    top:0;
+    left:50%;
+    transform:translateX(-50%);
+    width:360px;
+    height:14px;
+    z-index:3;
+}
+.top-panel{
+    position:fixed;
+    top:-420px;
+    left:50%;
+    transform:translateX(-50%);
+    width:360px;
+    padding:18px;
+    background:rgba(0,0,0,.75);
+    backdrop-filter:blur(12px);
+    border-radius:0 0 22px 22px;
+    transition:.45s;
+    z-index:4;
+}
+.top-zone:hover + .top-panel,
+.top-panel:hover{top:0}
+
+/* ===== TABS ===== */
+.tabs{
+    display:flex;
+    justify-content:center;
+    gap:16px;
+    margin-bottom:14px;
+}
+.tab{
+    padding:6px 18px;
+    font-size:13px;
+    border-radius:20px;
+    cursor:pointer;
+    background:rgba(255,255,255,.15);
+    color:white;
+}
+.tab.active{background:white;color:black}
+.panel{display:none}
+.panel.active{display:block}
+
+/* ===== VIDEO GRID ===== */
+.theme-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+}
+.theme-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:8px;
+    border-radius:12px;
+    cursor:pointer;
+    background:rgba(255,255,255,.15);
+    color:white;
+}
+.theme-item video{
+    width:60px;
+    height:40px;
+    border-radius:8px;
+    object-fit:cover;
+}
+
+/* ===== SETTING ===== */
+.toggle{
+    margin-top:12px;
+    text-align:center;
+}
+.toggle button{
+    padding:6px 16px;
+    border-radius:20px;
+    border:none;
+    cursor:pointer;
+    font-size:13px;
+}
+.toggle input[type="color"]{
+    margin-top:6px;
+}
+.toggle input[type="range"]{
+    width:100%;
+}
+</style>
+</head>
+
+<body>
+
+<video id="bg-video" autoplay muted loop></video>
+
+<div class="center">
+    <div id="day" class="day"></div>
+    <div id="date" class="date"></div>
+    <div id="time" class="time"></div>
+</div>
+
+<div class="top-zone"></div>
+
+<div class="top-panel">
+    <div class="tabs">
+        <div class="tab active" data-tab="video">VIDEO</div>
+        <div class="tab" data-tab="setting">SETTING</div>
+    </div>
+
+    <!-- VIDEO -->
+    <div class="panel active" id="video">
+        <div class="theme-grid">
+            <div class="theme-item" data-src="1.mp4"><video src="1.mp4" muted loop></video></div>
+            <div class="theme-item" data-src="2.mp4"><video src="2.mp4" muted loop></video></div>
+            <div class="theme-item" data-src="3.mp4"><video src="3.mp4" muted loop></video></div>
+            <div class="theme-item" data-src="4.mp4"><video src="4.mp4" muted loop></video></div>
+        </div>
+    </div>
+
+    <!-- SETTING -->
+    <div class="panel" id="setting">
+        <div class="toggle">
+            <label></label><br>
+            <input type="color" id="textColor">
+        </div>
+
+        <div class="toggle">
+            <label></label><br>
+            <input type="color" id="neonColor">
+        </div>
+
+        <div class="toggle">
+            <label></label>
+            <input type="range" id="glowStrength" min="0" max="60" value="16">
+        </div>
+
+        <div class="toggle">
+            <button id="toggleGlow"></button>
+        </div>
+    </div>
+</div>
+
+<script>
+const bgVid=document.getElementById("bg-video");
+
+/* VIDEO */
+function playVideo(src){
+    bgVid.src=src;
+    bgVid.play();
+    localStorage.setItem("video",src);
+}
+document.querySelectorAll(".theme-item").forEach(i=>{
+    i.onclick=()=>playVideo(i.dataset.src);
+});
+
+/* TAB */
+document.querySelectorAll(".tab").forEach(t=>{
+    t.onclick=()=>{
+        document.querySelectorAll(".tab,.panel").forEach(e=>e.classList.remove("active"));
+        t.classList.add("active");
+        document.getElementById(t.dataset.tab).classList.add("active");
+    }
+});
+
+/* PICKERS */
+const textColor=document.getElementById("textColor");
+const neonColor=document.getElementById("neonColor");
+const glowSlider=document.getElementById("glowStrength");
+
+/* TEXT COLOR */
+textColor.oninput=()=>{
+    document.documentElement.style.setProperty("--text-color",textColor.value);
+    localStorage.setItem("textColor",textColor.value);
+};
+
+/* NEON COLOR */
+neonColor.oninput=()=>{
+    document.documentElement.style.setProperty("--neon-color",neonColor.value);
+    if(glowOn) applyGlow();
+    localStorage.setItem("neonColor",neonColor.value);
+};
+
+/* GLOW */
+let glowOn=false;
+function applyGlow(){
+    const c=getComputedStyle(document.documentElement)
+        .getPropertyValue("--neon-color");
+    const s=glowSlider.value;
+    document.documentElement.style.setProperty(
+        "--glow",
+        `0 0 ${s/2}px ${c}, 0 0 ${s}px ${c}, 0 0 ${s*2}px ${c}`
+    );
+}
+function removeGlow(){
+    document.documentElement.style.setProperty("--glow","0 0 0 transparent");
+}
+toggleGlow.onclick=()=>{
+    glowOn=!glowOn;
+    glowOn?applyGlow():removeGlow();
+    localStorage.setItem("glow",glowOn);
+};
+
+/* SLIDER */
+glowSlider.oninput=()=>{
+    document.documentElement.style.setProperty("--glow-strength",glowSlider.value);
+    if(glowOn) applyGlow();
+    localStorage.setItem("glowStrength",glowSlider.value);
+};
+
+/* TIME */
+function tick(){
+    const d=new Date(new Date().toLocaleString("en-US",{timeZone:"Asia/Ho_Chi_Minh"}));
+    const days=["SUNDAY","MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY"];
+    const months=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+    day.textContent=days[d.getDay()];
+    date.textContent=`${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+    time.textContent=`– ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")} –`;
+}
+setInterval(tick,1000);
+tick();
+
+/* LOAD SAVE */
+playVideo(localStorage.getItem("video")||"1.mp4");
+
+const tc=localStorage.getItem("textColor");
+if(tc){textColor.value=tc;document.documentElement.style.setProperty("--text-color",tc);}
+
+const nc=localStorage.getItem("neonColor");
+if(nc){neonColor.value=nc;document.documentElement.style.setProperty("--neon-color",nc);}
+
+const gs=localStorage.getItem("glowStrength");
+if(gs){glowSlider.value=gs;}
+
+glowOn=localStorage.getItem("glow")==="true";
+if(glowOn) applyGlow();
+</script>
+
+</body>
+</html>
